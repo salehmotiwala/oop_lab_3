@@ -2,6 +2,8 @@
 
 A small **React + TypeScript** web app that encrypts or decrypts any file entirely in the browser using the **Web Crypto API**.
 
+A live version is available at: [https://lab-oop.netlify.app/](https://lab-oop.netlify.app/)
+
 ---
 
 ## What it does
