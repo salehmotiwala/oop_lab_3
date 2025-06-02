@@ -1,54 +1,88 @@
-# React + TypeScript + Vite
+# File Encryptor / Decryptor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A small **React + TypeScript** web app that encrypts or decrypts any file entirely in the browser using the **Web Crypto API**.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## What it does
 
-## Expanding the ESLint configuration
+| Action  | Details                                                                                                    |
+| ------- | ---------------------------------------------------------------------------------------------------------- |
+| Encrypt | Choose **AES‑GCM** (symmetric) or **Hybrid RSA‑OAEP + AES** (asymmetric) and download ciphertext + key(s). |
+| Decrypt | Re‑upload the `.enc` file and paste or upload the saved key JSON to restore the original file.             |
+| Privacy | All cryptography runs locally—no file ever leaves the browser.                                             |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Project layout
+
+```text
+src/
+ ├─ services/      # CryptoService.ts    – encryption logic
+ ├─ components/    # EncryptDecrypt.tsx  – main UI
+ ├─ App.tsx
+ └─ main.tsx
+index.css
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 🚀 Setup
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```bash
+# clone & install
+git clone <repo-url>
+cd file-encryptor
+npm install   # or pnpm / yarn
+
+# start dev server
+npm run dev   # open http://localhost:5173
 ```
+
+Then go to [http://localhost:5173](http://localhost:5173/)
+
+---
+
+## 🔐 Quick usage
+
+### Encrypt
+
+1. Pick **AES‑GCM** or **RSA‑OAEP**.
+2. Select a file.
+3. Click **Encrypt File**.
+4. Download:
+
+   - `file.ext.enc` – ciphertext
+   - Key JSON:
+
+     - AES → one `.aes_key.json`
+     - RSA → `.rsa_pub.json` & `.rsa_priv.json`
+
+### Decrypt
+
+1. Choose the same algorithm.
+2. Upload the `.enc` file.
+3. Paste or upload the key JSON.
+4. Click **Decrypt File** to retrieve the original.
+
+---
+
+## 🧠 How it works (30 sec)
+
+| Step | AES‑GCM                    | Hybrid RSA‑OAEP + AES                          |
+| ---- | -------------------------- | ---------------------------------------------- |
+| 1    | Generate 256‑bit AES key   | Generate RSA‑2048 keys + 256‑bit AES key       |
+| 2    | Encrypt file with AES‑GCM  | Encrypt file with AES‑GCM                      |
+| 3    | Export key as JWK JSON     | Encrypt AES key with RSA‑OAEP (public key)     |
+| 4    | Download `.enc` + key JSON | Bundle and download `.enc` + pub/priv key JSON |
+
+---
+
+## 📋 Notes
+
+- Works in any modern browser that supports the Web Crypto API.
+- Keep your key files safe, without them decryption is impossible.
+
+---
+
+**Author:** Muhammad Saleh, Subgroup 02
