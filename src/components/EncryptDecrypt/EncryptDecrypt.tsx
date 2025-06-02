@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Selector } from "../Selector";
+import { withTimestamp } from "@/lib/utils";
 
 export const EncryptDecrypt = () => {
   const service = new CryptoService();
@@ -37,7 +38,9 @@ export const EncryptDecrypt = () => {
 
   /* ---------- Handlers ---------- */
   const onEncryptFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) setFileToEncrypt(e.target.files[0]);
+    if (e.target.files?.[0]) {
+      setFileToEncrypt(withTimestamp(e.target.files[0]));
+    }
   };
 
   const onDecryptFileChange = (e: ChangeEvent<HTMLInputElement>) => {
