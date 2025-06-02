@@ -198,10 +198,16 @@ export const EncryptDecrypt = () => {
                 File to Encrypt
               </Label>
 
-              <Input id="enc-file" type="file" onChange={onEncryptFileChange} />
+              <Input
+                id="enc-file"
+                type="file"
+                onChange={onEncryptFileChange}
+                multiple={false}
+              />
 
               <span className="text-neutral-600 text-sm">
-                It is recommended to use small files.
+                Please upload a single file. It is recommended to use small
+                files.
               </span>
             </div>
 
@@ -266,7 +272,12 @@ export const EncryptDecrypt = () => {
                 Encrypted File
               </Label>
 
-              <Input id="dec-file" type="file" onChange={onDecryptFileChange} />
+              <Input
+                id="dec-file"
+                type="file"
+                onChange={onDecryptFileChange}
+                multiple={false}
+              />
             </div>
 
             <div>
@@ -303,6 +314,7 @@ export const EncryptDecrypt = () => {
                 type="file"
                 accept="application/json"
                 onChange={onKeyFileChange}
+                multiple={false}
               />
 
               <span className="text-neutral-600 text-sm">
