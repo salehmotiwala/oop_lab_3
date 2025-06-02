@@ -196,6 +196,10 @@ export const EncryptDecrypt = () => {
               </Label>
 
               <Input id="enc-file" type="file" onChange={onEncryptFileChange} />
+
+              <span className="text-neutral-600 text-sm">
+                It is recommended to use small files.
+              </span>
             </div>
 
             <Button disabled={!fileToEncrypt} onClick={encrypt}>
@@ -272,8 +276,18 @@ export const EncryptDecrypt = () => {
                 value={keyInput}
                 onChange={(e) => setKeyInput(e.target.value)}
                 rows={4}
-                placeholder='{ "kty": ... }'
+                placeholder='{ "kty": ... } or upload file below'
               />
+
+              <span className="text-neutral-600 text-sm">
+                Please paste the contents of the file with the{" "}
+                {algorithm === "RSA-OAEP" ? (
+                  <code>rsa_priv.json</code>
+                ) : (
+                  <code>aes_key.json</code>
+                )}{" "}
+                ending
+              </span>
             </div>
 
             <div>
@@ -287,6 +301,16 @@ export const EncryptDecrypt = () => {
                 accept="application/json"
                 onChange={onKeyFileChange}
               />
+
+              <span className="text-neutral-600 text-sm">
+                Please upload the private key with the{" "}
+                {algorithm === "RSA-OAEP" ? (
+                  <code>rsa_priv.json</code>
+                ) : (
+                  <code>aes_key.json</code>
+                )}{" "}
+                ending
+              </span>
             </div>
 
             <Button
