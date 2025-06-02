@@ -1,4 +1,4 @@
-import React, { useState, type ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import { CryptoService } from "../../services/CryptoService";
 import {
   Card,
@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Selector } from "../Selector";
 
-export const EncryptDecrypt: React.FC = () => {
+export const EncryptDecrypt = () => {
   const service = new CryptoService();
 
   const [mode, setMode] = useState<"encrypt" | "decrypt">("encrypt");
@@ -32,6 +32,9 @@ export const EncryptDecrypt: React.FC = () => {
   const [keyInput, setKeyInput] = useState<string>("");
   const [keyFile, setKeyFile] = useState<File | null>(null);
 
+  /* ---------- Loading state ---------- */
+  const [loading, setLoading] = useState(false);
+
   /* ---------- Handlers ---------- */
   const onEncryptFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) setFileToEncrypt(e.target.files[0]);
@@ -47,36 +50,52 @@ export const EncryptDecrypt: React.FC = () => {
 
   /* ---------- Encryption ---------- */
   const encrypt = async () => {
-    if (!fileToEncrypt) return;
+    try {
+      if (!fileToEncrypt) return;
 
-    const data = await service.readFileAsArrayBuffer(fileToEncrypt);
+      setLoading(true);
 
-    if (algorithm === "AES-GCM") {
-      const aesKey = await service.generateAESKey();
-      const { iv, ciphertext } = await service.aesEncrypt(aesKey, data);
+      const data = await service.readFileAsArrayBuffer(fileToEncrypt);
 
-      const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
-      combined.set(iv, 0);
-      combined.set(new Uint8Array(ciphertext), iv.byteLength);
+      if (algorithm === "AES-GCM") {
+        const aesKey = await service.generateAESKey();
+        const { iv, ciphertext } = await service.aesEncrypt(aesKey, data);
 
-      setEncryptedBlob(
-        service.arrayBufferToBlob(combined.buffer, "application/octet-stream")
+        const combined = new Uint8Array(iv.byteLength + ciphertext.byteLength);
+        combined.set(iv, 0);
+        combined.set(new Uint8Array(ciphertext), iv.byteLength);
+
+        setEncryptedBlob(
+          service.arrayBufferToBlob(combined.buffer, "application/octet-stream")
+        );
+
+        setExportedAESKey(await service.exportAESKeyJWK(aesKey));
+        setExportedRSAPub("");
+        setExportedRSAPriv("");
+      } else {
+        const { publicKey, privateKey } = await service.generateRSAKeyPair();
+        const hybrid = await service.hybridEncrypt(publicKey, data);
+
+        setEncryptedBlob(
+          service.arrayBufferToBlob(hybrid.buffer, "application/octet-stream")
+        );
+
+        setExportedRSAPub(await service.exportRSAKey(publicKey));
+        setExportedRSAPriv(await service.exportRSAKey(privateKey));
+        setExportedAESKey("");
+      }
+
+      alert(
+        "Encryption successful! You can now download the result and key(s)."
       );
+    } catch (err) {
+      console.error(err);
 
-      setExportedAESKey(await service.exportAESKeyJWK(aesKey));
-      setExportedRSAPub("");
-      setExportedRSAPriv("");
-    } else {
-      const { publicKey, privateKey } = await service.generateRSAKeyPair();
-      const hybrid = await service.hybridEncrypt(publicKey, data);
-
-      setEncryptedBlob(
-        service.arrayBufferToBlob(hybrid.buffer, "application/octet-stream")
+      alert(
+        `Encryption failed: ${err instanceof Error ? err.message : String(err)}`
       );
-
-      setExportedRSAPub(await service.exportRSAKey(publicKey));
-      setExportedRSAPriv(await service.exportRSAKey(privateKey));
-      setExportedAESKey("");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -95,41 +114,55 @@ export const EncryptDecrypt: React.FC = () => {
 
   /* ---------- Decryption ---------- */
   const decrypt = async () => {
-    if (!fileToDecrypt) return;
+    try {
+      if (!fileToDecrypt) return;
 
-    const payload = await service.readFileAsArrayBuffer(fileToDecrypt);
+      setLoading(true);
 
-    let keyJson = keyInput;
+      const payload = await service.readFileAsArrayBuffer(fileToDecrypt);
 
-    if (!keyJson && keyFile) {
-      keyJson = new TextDecoder().decode(
-        await service.readFileAsArrayBuffer(keyFile)
+      let keyJson = keyInput;
+
+      if (!keyJson && keyFile) {
+        keyJson = new TextDecoder().decode(
+          await service.readFileAsArrayBuffer(keyFile)
+        );
+      }
+
+      if (!keyJson) return;
+
+      let plaintext: ArrayBuffer;
+
+      if (algorithm === "AES-GCM") {
+        const aesKey = await service.importAESKeyJWK(keyJson);
+
+        const u8 = new Uint8Array(payload);
+        const iv = u8.slice(0, 12);
+        const ciphertext = u8.slice(12).buffer;
+
+        plaintext = await service.aesDecrypt(aesKey, iv, ciphertext);
+      } else {
+        const rsaPriv = await service.importRSAPrivateKey(keyJson);
+        plaintext = await service.hybridDecrypt(rsaPriv, payload);
+      }
+
+      const originalName = fileToDecrypt.name.replace(/\.enc$/, "");
+
+      service.downloadBlob(
+        service.arrayBufferToBlob(plaintext, "application/octet-stream"),
+        originalName || "decrypted"
       );
+
+      alert("Decryption successful! The file has been downloaded.");
+    } catch (err) {
+      console.error(err);
+
+      alert(
+        `Decryption failed: ${err instanceof Error ? err.message : String(err)}`
+      );
+    } finally {
+      setLoading(false);
     }
-
-    if (!keyJson) return;
-
-    let plaintext: ArrayBuffer;
-
-    if (algorithm === "AES-GCM") {
-      const aesKey = await service.importAESKeyJWK(keyJson);
-
-      const u8 = new Uint8Array(payload);
-      const iv = u8.slice(0, 12);
-      const ciphertext = u8.slice(12).buffer;
-
-      plaintext = await service.aesDecrypt(aesKey, iv, ciphertext);
-    } else {
-      const rsaPriv = await service.importRSAPrivateKey(keyJson);
-      plaintext = await service.hybridDecrypt(rsaPriv, payload);
-    }
-
-    const originalName = fileToDecrypt.name.replace(/\.enc$/, "");
-
-    service.downloadBlob(
-      service.arrayBufferToBlob(plaintext, "application/octet-stream"),
-      originalName || "decrypted"
-    );
   };
 
   /* ---------- UI ---------- */
@@ -161,11 +194,12 @@ export const EncryptDecrypt: React.FC = () => {
               <Label htmlFor="enc-file" className="mb-3">
                 File to Encrypt
               </Label>
+
               <Input id="enc-file" type="file" onChange={onEncryptFileChange} />
             </div>
 
             <Button disabled={!fileToEncrypt} onClick={encrypt}>
-              Encrypt File
+              {loading ? "Encrypting..." : "Encrypt File"}
             </Button>
 
             {encryptedBlob && (
@@ -256,10 +290,10 @@ export const EncryptDecrypt: React.FC = () => {
             </div>
 
             <Button
-              disabled={!fileToDecrypt || (!keyInput && !keyFile)}
+              disabled={!fileToDecrypt || (!keyInput && !keyFile) || loading}
               onClick={decrypt}
             >
-              Decrypt File
+              {loading ? "Decrypting..." : "Decrypt File"}
             </Button>
           </TabsContent>
         </Tabs>
